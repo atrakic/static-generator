@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <title>{{ title }} - {{ subtitle }}</title>
     <meta charset="UTF-8">
@@ -11,7 +10,6 @@
 </head>
 
 <body id="{{ slug }}">
-
     <nav class="navbar navbar-expand-md navbar-dark bg-dark border-bottom border-secondary-subtle">
         <div class="container">
             <a class="navbar-brand" href="{{ base_path }}/">Home</a>
@@ -38,7 +36,7 @@
         <div class="container">
             <p>&copy; {{ current_year }} {{ author }}</p>
             <p>
-                <a href="{{ site_url }}">{{ site_url }}</a>
+                <a href="{{ generator }}">{{ generator }}</a>
             </p>
         </div>
     </footer>
@@ -64,7 +62,5 @@
             });
         })();
     </script>
-
 </body>
-
 </html>
