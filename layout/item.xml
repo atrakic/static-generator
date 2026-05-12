@@ -6,7 +6,7 @@
 <p>
 {{ summary }}&nbsp;<a href="{{ site_url }}/{{ blog }}/{{ slug }}/">...</a>
 </p>
-<p><a href="{{ site_url }}/{{ blog }}/{{ slug }}/">Read More</a></p>
+<p><a href="{{ site_url }}/{{ blog }}/{{ slug }}/">Read more</a></p>
 ]]>
 </description>
 <pubDate>{{ rfc_2822_date }}</pubDate>

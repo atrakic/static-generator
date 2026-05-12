@@ -1,13 +1,36 @@
 # Commit to remote repo which would new trigger container image build.
-name: deploy-container
+name: make-site
 
 on:
   workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target repo in owner/name format"
+        required: false
+        default: ""
+      target_branch:
+        description: "Target branch for deployment"
+        required: false
+        default: ""
+      config_params_path:
+        description: "Path to params.json template"
+        required: false
+        default: ""
   push:
     branches: ["master"]
+  schedule:
+    - cron: '0 8 * * *'  # every-day-8am
 
 permissions:
   contents: read
+
+env:
+  PYTHON_VERSION: "3.10"
+  SITE_DIR: "_site"
+  PARAMS_FILE: "params.json"
+  TARGET_GITHUB_REPO: ${{ github.event.inputs.target_repo || vars.TARGET_GITHUB_REPO || 'atrakic/static-site' }}
+  TARGET_BRANCH: ${{ github.event.inputs.target_branch || vars.TARGET_BRANCH || 'main' }}
+  CONFIG_PARAMS_PATH: ${{ github.event.inputs.config_params_path || vars.CONFIG_PARAMS_PATH || 'config/params.json' }}
 
 jobs:
   sync:
@@ -15,39 +38,45 @@ jobs:
     if: "!contains(github.event.head_commit.message, 'ci skip')"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Dependencies
-        run: python3.10 -m pip install -r requirements.txt --upgrade
+        run: python${{ env.PYTHON_VERSION }} -m pip install -r requirements.txt --upgrade
+
+      - name: Configure GH site
+        run: cp -f "${{ env.CONFIG_PARAMS_PATH }}" "${{ env.PARAMS_FILE }}"
 
       - name: Static site generator 
         run: make site
-
-      - name: Configure Git
-        run: |        
-          git config --global user.name "$(git log -n 1 --pretty=format:%an)"
-          git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
-
+   
       - name: Deploy to remote repo
         run: |
-          set -x
-          git clone -q https://"${{ secrets.TOKEN }}"@github.com/"${{ env.TARGET_GITHUB_REPO }}".git "${{ env.TARGET_GITHUB_REPO }}"
-          rm -rf "${{ env.TARGET_GITHUB_REPO }}"/_site
-          mv -f _site "${{ env.TARGET_GITHUB_REPO }}"/
-          pushd "${{ env.TARGET_GITHUB_REPO }}"
-          git add -f _site
-          if [ -n "$(git status --porcelain)" ]; then
+          set -eux
+
+          repo_url="https://${{ secrets.TOKEN }}@github.com/${TARGET_GITHUB_REPO}.git"
+          repo_dir="$(basename "${TARGET_GITHUB_REPO}")"
+
+          git clone -q "${repo_url}" "${repo_dir}"
+          rm -rf "${repo_dir}/${SITE_DIR}"
+          mv -f "${SITE_DIR}" "${repo_dir}/"
+
+          pushd "${repo_dir}"
+          git config --global user.name "$(git log -n 1 --pretty=format:%an)"
+          git config --global user.email "$(git log -n 1 --pretty=format:%ae)"
+          git add -f "${SITE_DIR}"
+
+          if ! git diff --cached --quiet; then
             git diff --name-only
             git commit -m "Sync site pages: ${{ github.event.repository.html_url }}/commit/${GITHUB_SHA}"
-            git push -u origin "${{ env.TARGET_BRANCH }}"
+            git push -u origin "${TARGET_BRANCH}"
+          else
+            echo "No site changes to deploy."
           fi
           popd
-          rm -rf "${{ env.TARGET_GITHUB_REPO }}"
-        env:
-          TARGET_GITHUB_REPO: "atrakic/go-static-site"
-          TARGET_BRANCH: "main"
+          
+          rm -rf "${repo_dir}"

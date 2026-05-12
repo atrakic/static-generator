@@ -35,6 +35,7 @@ import sys
 import json
 import datetime
 import commonmark
+from urllib.parse import urlsplit
 
 def fread(filename):
     """Read file and close the file."""
@@ -166,61 +167,83 @@ def make_list(posts, dst, list_layout, item_layout, **params):
 
 
 def main():
-    """Create a new _site directory from scratch."""
-    if os.path.isdir('_site'):
-        shutil.rmtree('_site')
-    shutil.copytree('static', '_site')
-
     # Default parameters.
     params = {
-        'base_path': '',
         'subtitle': 'Lorem Ipsum',
         'author': 'pwNd',
         'site_url': 'http://localhost:8000',
-        'current_year': datetime.datetime.now().year
+        'current_year': datetime.datetime.now().year,
+        'site_dir': '_site',
+        'static_dir': 'static',
+        'content_dir': 'content',
+        'layout_dir': 'layout',
+        'blog_slug': 'blog',
+        'news_slug': 'news'
     }
 
     # If params.json exists, load it.
     if os.path.isfile('params.json'):
         params.update(json.loads(fread('params.json')))
 
+    # Keep config simple: allow using only site_url.
+    # If base_path is omitted, derive it from site_url path (e.g. /my-site).
+    if ('base_path' not in params or params['base_path'] == '') and params.get('site_url'):
+        base_path = urlsplit(params['site_url']).path.rstrip('/')
+        params['base_path'] = base_path
+
+    # Backward-compatible fallback: if site_url is missing, build it from base_path.
+    if not params.get('site_url'):
+        params['site_url'] = 'http://localhost:8000' + params.get('base_path', '')
+
+    site_dir = params['site_dir']
+    static_dir = params['static_dir']
+    content_dir = params['content_dir']
+    layout_dir = params['layout_dir']
+    blog_slug = params['blog_slug']
+    news_slug = params['news_slug']
+    
+    # Create a new _site directory from scratch
+    if os.path.isdir(site_dir):
+        shutil.rmtree(site_dir)
+    shutil.copytree(static_dir, site_dir)
+
     # Load layouts.
-    page_layout = fread('layout/page.html')
-    post_layout = fread('layout/post.html')
-    list_layout = fread('layout/list.html')
-    item_layout = fread('layout/item.html')
-    feed_xml = fread('layout/feed.xml')
-    item_xml = fread('layout/item.xml')
+    page_layout = fread(os.path.join(layout_dir, 'page.html'))
+    post_layout = fread(os.path.join(layout_dir, 'post.html'))
+    list_layout = fread(os.path.join(layout_dir, 'list.html'))
+    item_layout = fread(os.path.join(layout_dir, 'item.html'))
+    feed_xml = fread(os.path.join(layout_dir, 'feed.xml'))
+    item_xml = fread(os.path.join(layout_dir, 'item.xml'))
 
     # Combine layouts to form final layouts.
     post_layout = render(page_layout, content=post_layout)
     list_layout = render(page_layout, content=list_layout)
 
     # Create site pages.
-    make_pages('content/_index.html', '_site/index.html',
+    make_pages(os.path.join(content_dir, '_index.html'), os.path.join(site_dir, 'index.html'),
                page_layout, **params)
-    make_pages('content/[!_]*.html', '_site/{{ slug }}/index.html',
+    make_pages(os.path.join(content_dir, '[!_]*.html'), os.path.join(site_dir, '{{ slug }}', 'index.html'),
                page_layout, **params)
 
     # Create blogs.
-    blog_posts = make_pages('content/blog/*.md',
-                            '_site/blog/{{ slug }}/index.html',
-                            post_layout, blog='blog', **params)
-    news_posts = make_pages('content/news/*.html',
-                            '_site/news/{{ slug }}/index.html',
-                            post_layout, blog='news', **params)
+    blog_posts = make_pages(os.path.join(content_dir, blog_slug, '*.md'),
+                            os.path.join(site_dir, blog_slug, '{{ slug }}', 'index.html'),
+                            post_layout, blog=blog_slug, **params)
+    news_posts = make_pages(os.path.join(content_dir, news_slug, '*.html'),
+                            os.path.join(site_dir, news_slug, '{{ slug }}', 'index.html'),
+                            post_layout, blog=news_slug, **params)
 
     # Create blog list pages.
-    make_list(blog_posts, '_site/blog/index.html',
-              list_layout, item_layout, blog='blog', title='Blog', **params)
-    make_list(news_posts, '_site/news/index.html',
-              list_layout, item_layout, blog='news', title='News', **params)
+    make_list(blog_posts, os.path.join(site_dir, blog_slug, 'index.html'),
+              list_layout, item_layout, blog=blog_slug, title='Blog', **params)
+    make_list(news_posts, os.path.join(site_dir, news_slug, 'index.html'),
+              list_layout, item_layout, blog=news_slug, title='News', **params)
 
     # Create RSS feeds.
-    make_list(blog_posts, '_site/blog/rss.xml',
-              feed_xml, item_xml, blog='blog', title='Blog', **params)
-    make_list(news_posts, '_site/news/rss.xml',
-              feed_xml, item_xml, blog='news', title='News', **params)
+    make_list(blog_posts, os.path.join(site_dir, blog_slug, 'rss.xml'),
+              feed_xml, item_xml, blog=blog_slug, title='Blog', **params)
+    make_list(news_posts, os.path.join(site_dir, news_slug, 'rss.xml'),
+              feed_xml, item_xml, blog=news_slug, title='News', **params)
 
 
 # Test parameter to be set temporarily by unit tests.

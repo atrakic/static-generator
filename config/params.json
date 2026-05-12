@@ -1,6 +1,12 @@
 {
-  "base_path": "/static-site",
+  "site_dir": "_site",
+  "static_dir": "static",
+  "content_dir": "content",
+  "layout_dir": "layout",
+  "blog_slug": "blog",
+  "news_slug": "news",
   "subtitle": "Foo&Bar",
+  "description": "Just another autogenerate static site",
   "author": "pwNd.io",
   "site_url": "https://atrakic.github.io/static-site"
 }
