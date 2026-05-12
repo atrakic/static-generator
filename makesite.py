@@ -34,7 +34,7 @@ import glob
 import sys
 import json
 import datetime
-import commonmark
+import markdown
 from urllib.parse import urlsplit
 
 def fread(filename):
@@ -103,7 +103,7 @@ def read_content(filename):
         try:
             if _TEST == 'ImportError':
                 raise ImportError('Error forced by test')
-            text = commonmark.commonmark(text)
+            text = markdown.markdown(text, extensions=['tables']) + '\n'
         except ImportError as err:
             log('WARNING: Cannot render Markdown in {}: {}', filename, str(err))
 

@@ -13,6 +13,7 @@ class ContentTest(unittest.TestCase):
         self.dated_path = os.path.join(self.blog_path, '2018-01-01-foo.txt')
         self.normal_post_path = os.path.join(self.blog_path, 'baz.txt')
         self.md_post_path = os.path.join(self.blog_path, 'qux.md')
+        self.table_md_post_path = os.path.join(self.blog_path, 'table.md')
         self.no_md_post_path = os.path.join(self.blog_path, 'qux.txt')
 
         os.makedirs(self.blog_path)
@@ -28,6 +29,9 @@ class ContentTest(unittest.TestCase):
 
         with open(self.md_post_path, 'w') as f:
             f.write('*Foo*')
+
+        with open(self.table_md_post_path, 'w') as f:
+            f.write('| A | B |\n| --- | --- |\n| 1 | 2 |')
 
         with open(self.no_md_post_path, 'w') as f:
             f.write('*Foo*')
@@ -68,6 +72,11 @@ class ContentTest(unittest.TestCase):
     def test_markdown_rendering(self):
         content = makesite.read_content(self.md_post_path)
         self.assertEqual(content['content'], '<p><em>Foo</em></p>\n')
+
+    def test_markdown_table_rendering(self):
+        content = makesite.read_content(self.table_md_post_path)
+        self.assertIn('<table>', content['content'])
+        self.assertIn('<td>1</td>', content['content'])
 
     def test_markdown_import_error(self):
         makesite._test = 'ImportError'
