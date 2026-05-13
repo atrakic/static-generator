@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <title>{{ title }} - {{ subtitle }}</title>
     <meta charset="UTF-8">
@@ -19,10 +20,7 @@
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
                 <div class="navbar-nav ms-md-auto">
-                    <a class="nav-link" href="{{ base_path }}/blog/">Blog</a>
-                    <a class="nav-link" href="{{ base_path }}/news/">News</a>
-                    <a class="nav-link" href="{{ base_path }}/contact/">Contact</a>
-                    <a class="nav-link" href="{{ base_path }}/about/">About</a>
+                    {{ nav_links }}
                 </div>
             </div>
         </div>
@@ -63,4 +61,5 @@
         })();
     </script>
 </body>
+
 </html>
